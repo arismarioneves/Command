@@ -1,6 +1,6 @@
 # Command - Assistente de comandos para o Windows
 # Autor: Mari05liM
-# Versão: 1.0
+# Versão: 1.1
 
 import os
 import openai
@@ -8,8 +8,10 @@ import webbrowser
 import config
 
 openapiley = config.OPENAPIKEY
-usuarioOS = config.USUARIOOS
 usuario = config.USUARIO
+
+if usuario == "":
+    usuario = "root"
 
 os.system("cls" if os.name == "nt" else "clear")  # Limpa a tela
 os.environ["PYTHONIOENCODING"] = "utf-8"  # Define a codificação do terminal
@@ -19,10 +21,8 @@ temperature = 0
 max_tokens = 300
 treinamento = (
     """
-Olá, seu nome é Command, sua função é ajudar a desenvolvedores a executar comandos no sistema operacional.
-Em propts com a palavra "execute", motre comandos do CMD do Windows 11, caso contrário responda normalmente. Para lista comandos use chaves, exemplo {comando}. O usuário do sistema operacional atual é """
-    + usuarioOS
-    + """, e nos comandos ele deve aparecer entre aspas.
+Seu nome é Command e a sua função é ajudar usuários a executar comandos no sistema operacional.
+Em propts com a palavra "execute", motre comandos do CMD do Windows, caso contrário responda normalmente. Para lista comandos use chaves, exemplo {comando}, o diretório deve estar entre aspas.
 Exemplos:
 """
     + usuario
@@ -33,9 +33,7 @@ Command: {comando} Olá """
 """
     + usuario
     + """: Execute listar arquivos do desktop.
-Command: {dir "C:\\Users\\"""
-    + usuarioOS
-    + """\\Desktop"} Aqui está a saída do comando.
+Command: {dir "%USERPROFILE%\desktop"} Aqui está a saída do comando.
 """
     + usuario
     + """: Execute clima.
