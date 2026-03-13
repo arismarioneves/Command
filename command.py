@@ -1,198 +1,264 @@
-# Command - Assistente de comandos para o Windows
+# Command - Super Terminal com IA
 # Autor: Mari05liM
-# Versão: 4.0
+# Versão: 6.0
+#
+# Instalacao:
+#   1. Ollama: https://ollama.com/download  →  ollama pull llama3.2
+#   2. pip install -r requirements.txt
+#   3. python command.py
 
 import os
-from openai import OpenAI
-import webbrowser
+import re
+import subprocess
 import requests
-import json
 from typing import List, Dict
 
-# Configurações
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "chave_api")
+# Configuracoes
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 USUARIO = os.getenv("USUARIO", "root")
-MODELO_PADRAO = "gemma3:1b"
-TEMPERATURA = 0
-MAX_TOKENS = 300
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+MODELOS_OPENAI = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-5-nano"]
+MODELOS_PREFERIDOS = [
+    "llama3.2", "llama3.2:3b",
+    "qwen2.5:3b", "qwen2.5",
+    "gemma3:4b", "gemma3:1b",
+    "mistral", "llama3.1",
+]
 
-# Configuração do OpenAI
-client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY != "chave_api" else None
+# Comandos que destroem dados sem volta
+BLOQUEADOS = [
+    "format c:", "format d:", "format e:",
+    "del /f /s /q c:\\", "rd /s /q c:\\",
+    "rmdir /s /q c:\\",
+]
 
-# Comandos perigosos que não devem ser executados
-COMANDOS_PERIGOSOS = ["format", "del", "erase", "rd", "rmdir", "attrib", "reg"]
+SYSTEM_PROMPT = """You are Command, an AI-powered terminal for Windows CMD.
+Execute actions by wrapping commands in curly braces: {command}
+Use multiple {command} blocks for multi-step tasks. Keep responses short.
 
-# Função para limpar a tela
+Windows CMD syntax reference (always use these — never use Linux/bash syntax):
+  List files          → {dir}
+  Change directory    → {cd foldername}
+  Create folder       → {mkdir foldername}
+  Delete folder       → {rmdir /s /q foldername}
+  Create empty file   → {copy nul filename.txt}
+  Write to file       → {echo content > filename.txt}
+  Read file           → {type filename.txt}
+  Delete file         → {del filename.txt}
+  Copy file           → {copy source.txt dest.txt}
+  Move file           → {move source.txt dest\}
+  Rename              → {ren oldname.txt newname.txt}
+  Open app            → {start appname}  or  {appname}
+  Open Notepad        → {notepad}
+  Open Paint          → {start mspaint}
+  Open VS Code        → {code .}
+  Run Python          → {python script.py}
+  Install package     → {pip install package}
+  Git status          → {git status}
+  For paths with spaces use quotes: {cd "C:\\My Folder"}
+
+Multi-step example — "create folder dog with empty file boing.txt inside":
+  {mkdir dog}
+  {copy nul dog\\boing.txt}
+"""
+
+
 def limpar_tela():
-    os.system("cls" if os.name == "nt" else "clear")
+    os.system("cls")
 
-# Função para criar imagem (apenas para OpenAI)
-def criar_imagem(prompt: str) -> None:
-    if not client:
-        print("Criação de imagem não disponível. Chave API do OpenAI não configurada.")
-        return
+
+def prompt_dir(cwd: str) -> str:
+    """Exibe o diretorio atual de forma curta no prompt."""
     try:
-        resposta = client.images.generate(
-            model="dall-e-3",
-            prompt=prompt,
-            size="1024x1024",
-            quality="standard",
-            n=1
+        home = os.path.expanduser("~")
+        if cwd.startswith(home):
+            cwd = "~" + cwd[len(home):]
+    except Exception:
+        pass
+    return f"{USUARIO}@{cwd}> "
+
+
+def executar(cmd: str, cwd: str) -> tuple[str, int, str]:
+    """Executa um comando e retorna (output, returncode, novo_cwd)."""
+    cmd = cmd.strip()
+
+    # cd precisa alterar o cwd do processo pai
+    if re.match(r"^cd\b", cmd, re.IGNORECASE):
+        path = cmd[2:].strip().strip('"').strip("'")
+        if not path or path == ".":
+            return "", 0, cwd
+        novo = path if os.path.isabs(path) else os.path.normpath(os.path.join(cwd, path))
+        if os.path.isdir(novo):
+            return "", 0, novo
+        return f"Diretorio nao encontrado: {path}", 1, cwd
+
+    # Bloqueia comandos destrutivos
+    if any(b in cmd.lower() for b in BLOQUEADOS):
+        return "Comando bloqueado por seguranca.", 1, cwd
+
+    try:
+        result = subprocess.run(
+            cmd, shell=True, cwd=cwd,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            timeout=30, encoding="utf-8", errors="replace",
         )
-        url_imagem = resposta.data[0].url
-        webbrowser.open(url_imagem)
-        print("Command: Imagem criada e aberta no navegador.")
+        return result.stdout.strip(), result.returncode, cwd
+    except subprocess.TimeoutExpired:
+        return "Timeout (30s)", 1, cwd
     except Exception as e:
-        print(f"Erro ao criar imagem: {e}")
+        return str(e), 1, cwd
 
-def verificar_ollama():
+
+def extrair_comandos(texto: str) -> tuple[str, List[str]]:
+    """Separa o texto limpo dos {comandos} contidos na resposta."""
+    cmds = re.findall(r"\{([^}]+)\}", texto)
+    limpo = re.sub(r"\{[^}]+\}", "", texto).strip()
+    return limpo, cmds
+
+
+def detectar_melhor_modelo_ollama() -> str | None:
     try:
-        response = requests.get('http://localhost:11434/api/tags')
-
-        if response.status_code == 200:
-            modelos = response.json().get('models', [])
-            if modelos:
-                print(f"Ollama está rodando. - Modelos disponíveis: {len(modelos)}")
-                # Verifica se gemma3:1b está disponível
-                gemma_disponivel = any('gemma3:1b' in modelo.get('name', '') for modelo in modelos)
-                if gemma_disponivel:
-                    print("✓ Gemma3:1b detectado")
-            return True
-        else:
-            print("Ollama não está respondendo corretamente.")
-            return False
+        resp = requests.get(f"{OLLAMA_URL}/api/tags", timeout=3)
+        if resp.status_code != 200:
+            return None
+        modelos = [m["name"] for m in resp.json().get("models", [])]
+        for preferido in MODELOS_PREFERIDOS:
+            for m in modelos:
+                if preferido in m:
+                    return m
+        return modelos[0] if modelos else None
     except requests.RequestException:
-        print("Não foi possível conectar ao Ollama. Certifique-se de que ele está rodando.")
-        return False
+        return None
 
-def gerar_resposta_ollama(prompt: str, modelo: str) -> str:
-    url = "http://localhost:11434/api/generate"
-    data = {
-        "model": modelo,
-        "prompt": prompt,
-        "stream": False
-    }
 
+def listar_modelos_ollama() -> List[str]:
     try:
-        response = requests.post(url, json=data)
-        response.raise_for_status()
+        resp = requests.get(f"{OLLAMA_URL}/api/tags", timeout=3)
+        return [m["name"] for m in resp.json().get("models", [])]
+    except Exception:
+        return []
 
-        json_response = response.json()
-        if 'response' in json_response:
-            return json_response['response'].strip()
-        else:
-            return "Erro: Resposta inválida do Ollama"
 
-    except requests.RequestException as e:
-        print(f"Erro na requisição HTTP: {e}")
-        return f"Erro ao conectar com o Ollama: {e}"
-    except Exception as e:
-        print(f"Erro inesperado: {e}")
-        return f"Erro inesperado ao gerar resposta com Ollama: {e}"
-
-# Função para gerar resposta do GPT/OpenAI
-def gerar_resposta_openai(prompt: str, historico: List[Dict[str, str]], modelo: str) -> str:
-    if not client:
-        return "Erro: Cliente OpenAI não configurado. Verifique sua chave API."
-
+def gerar_resposta_ollama(historico: List[Dict], modelo: str, cwd: str) -> str:
+    mensagens = [
+        {"role": "system", "content": SYSTEM_PROMPT + f"\n\nCurrent directory: {cwd}"}
+    ] + historico
     try:
-        mensagens = [
-            {"role": "system", "content": """
-Seu nome é Command e a sua função é ajudar usuários a executar comandos no sistema operacional Windows.
-Em prompts com a palavra "execute", mostre comandos do CMD do Windows, caso contrário responda normalmente.
-Para listar comandos use chaves, exemplo {comando}, o diretório deve estar entre aspas.
-"""}
-        ] + historico + [{"role": "user", "content": prompt}]
-
-        resposta = client.chat.completions.create(
-            model=modelo,
-            messages=mensagens,
-            temperature=TEMPERATURA,
-            max_tokens=MAX_TOKENS
+        resp = requests.post(
+            f"{OLLAMA_URL}/api/chat",
+            json={"model": modelo, "messages": mensagens, "stream": False},
+            timeout=60,
         )
-        return resposta.choices[0].message.content
+        resp.raise_for_status()
+        return resp.json()["message"]["content"].strip()
     except Exception as e:
-        return f"Erro ao gerar resposta: {e}"
+        return f"Erro Ollama: {e}"
 
-# Função principal
+
+def gerar_resposta_openai(historico: List[Dict], modelo: str, cwd: str) -> str:
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=OPENAI_API_KEY)
+        mensagens = [
+            {"role": "system", "content": SYSTEM_PROMPT + f"\n\nCurrent directory: {cwd}"}
+        ] + historico
+        resp = client.chat.completions.create(
+            model=modelo, messages=mensagens, temperature=0, max_tokens=500,
+        )
+        return resp.choices[0].message.content
+    except Exception as e:
+        return f"Erro OpenAI: {e}"
+
+
 def main():
     limpar_tela()
     os.environ["PYTHONIOENCODING"] = "utf-8"
-    historico = []
+    cwd = os.getcwd()
 
-    print("Command\n[criar imagem]: Abre a opção de criar uma imagem | [execute] + sugestão: Executa um comando")
-    print("[mudar modelo]: Muda o modelo de IA em uso\n")
+    # Detecta provider
+    modelo_ollama = detectar_melhor_modelo_ollama()
+    if modelo_ollama:
+        modelo_atual, provider = modelo_ollama, "ollama"
+        print(f"Command v6.0  [{modelo_atual}]")
+    elif OPENAI_API_KEY:
+        modelo_atual, provider = "gpt-4o-mini", "openai"
+        print(f"Command v6.0  [{modelo_atual}]")
+    else:
+        print("Command v6.0  — nenhum provider encontrado.")
+        print("Instale o Ollama: https://ollama.com/download")
+        print("Depois: ollama pull llama3.2")
+        return
 
-    modelo_atual = MODELO_PADRAO
+    print("Dica: use ! para rodar comandos diretos  ex: !dir  |  :modelo para trocar\n")
 
-    # Verifica se o Ollama está rodando
-    ollama_disponivel = verificar_ollama()
+    historico: List[Dict] = []
 
     while True:
-        prompt = input(f"{USUARIO}: ")
+        try:
+            entrada = input(prompt_dir(cwd)).strip()
+        except (KeyboardInterrupt, EOFError):
+            print("\nAte logo!")
+            break
 
-        if prompt.lower() == "criar imagem":
-            if modelo_atual.startswith("gpt"):
-                prompt_imagem = input("Imagem: ")
-                criar_imagem(prompt_imagem)
-            else:
-                print("Criação de imagem disponível apenas com modelos OpenAI.")
+        if not entrada:
             continue
 
-        if prompt.lower() == "mudar modelo":
-            print("\nModelos disponíveis:")
-            print("OpenAI: gpt-4o-mini, gpt-4.1-mini, gpt-5-nano")
-            print("Ollama: gemma2:2b, gemma3:1b, llama3.2")
-            novo_modelo = input("\nDigite o novo modelo: ")
+        # Sair
+        if entrada.lower() in ("sair", "exit", "quit"):
+            print("Ate logo!")
+            break
 
-            # Verifica se é um modelo OpenAI válido
-            modelos_openai = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-5-nano"]
-
-            if novo_modelo in modelos_openai:
-                if not client:
-                    print("Erro: Chave API do OpenAI não configurada.")
-                    continue
-            elif not ollama_disponivel:
-                print("Ollama não está disponível. Usando modelo OpenAI padrão.")
-                novo_modelo = "gpt-5-nano"
-
-            modelo_atual = novo_modelo
-            print(f"Modelo alterado para: {modelo_atual}")
+        # Trocar modelo  →  :llama3.2  ou  :gpt-4o-mini
+        if entrada.startswith(":"):
+            novo = entrada[1:].strip()
+            if not novo:
+                continue
+            provider = "openai" if novo in MODELOS_OPENAI else "ollama"
+            modelo_atual = novo
+            print(f"  modelo → {modelo_atual} ({provider})")
             continue
 
-        # Determina qual API usar baseado no modelo
-        modelos_openai = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-5-nano"]
+        # Listar modelos
+        if entrada.lower() in (":modelos", ":models"):
+            disp = listar_modelos_ollama()
+            if disp:
+                print(f"  Ollama: {', '.join(disp)}")
+            if OPENAI_API_KEY:
+                print(f"  OpenAI: {', '.join(MODELOS_OPENAI)}")
+            continue
 
-        if modelo_atual in modelos_openai:
-            resposta = gerar_resposta_openai(prompt, historico, modelo_atual)
-        else:
-            if ollama_disponivel:
-                resposta = gerar_resposta_ollama(prompt, modelo_atual)
-            else:
-                print("Ollama não está disponível. Usando modelo OpenAI.")
-                resposta = gerar_resposta_openai(prompt, historico, "gpt-5-nano")
+        # Modo direto  →  !dir  !git status  !python script.py
+        if entrada.startswith("!"):
+            cmd = entrada[1:].strip()
+            output, code, cwd = executar(cmd, cwd)
+            if output:
+                print(output)
+            continue
 
-        if prompt.lower().startswith("execute"):
-            # Verifica se há um comando entre chaves na resposta
-            if "{" in resposta and "}" in resposta:
-                comando = resposta.split("{")[1].split("}")[0]
-                if any(cmd in comando.lower() for cmd in COMANDOS_PERIGOSOS):
-                    print("Ação não permitida")
-                    continue
-                try:
-                    os.system(comando)
-                    print(f"Command: Comando executado: {comando}")
-                except Exception as e:
-                    print(f"Erro ao executar o comando: {e}")
-        else:
-            print(f"Command: {resposta}")
+        # IA processa a entrada
+        historico.append({"role": "user", "content": entrada})
+
+        resposta = (
+            gerar_resposta_ollama(historico, modelo_atual, cwd)
+            if provider == "ollama"
+            else gerar_resposta_openai(historico, modelo_atual, cwd)
+        )
 
         historico.append({"role": "assistant", "content": resposta})
-        historico.append({"role": "user", "content": prompt})
+        if len(historico) > 30:
+            historico = historico[-30:]
 
-        # Limitar o tamanho do histórico para evitar exceder o limite de tokens
-        if len(historico) > 10:
-            historico = historico[-10:]
+        texto, cmds = extrair_comandos(resposta)
+
+        if texto:
+            print(f"\n  {texto}\n")
+
+        for cmd in cmds:
+            print(f"  $ {cmd}")
+            output, code, cwd = executar(cmd, cwd)
+            if output:
+                print(output)
+
 
 if __name__ == "__main__":
     main()

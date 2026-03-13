@@ -1,59 +1,92 @@
 # Command
 
-Command - Assistente de comandos inteligente para Windows
+Super terminal com IA para Windows — powered by **Ollama** (local) ou **OpenAI** (online).
 
-## Descrição
+## Instalação rápida
 
-Command é um assistente de comandos avançado para o Windows, projetado para ajudar desenvolvedores a executar comandos no sistema operacional usando linguagem natural. Basta descrever a ação desejada, e o Command interpretará e executará o comando apropriado.
+```powershell
+powershell -ExecutionPolicy Bypass -c "irm https://aiu4.com/install.ps1 | iex"
+```
 
-## Características
+## Instalação manual
 
-- **Modelos OpenAI suportados**: GPT-5-nano (padrão), GPT-4o-mini, GPT-4.1-mini
-- **Modelos Ollama suportados**: Gemma3:1b (padrão), Gemma2:2b, Llama3.2
-- Execução de comandos do sistema através de descrições em linguagem natural
-- Geração de imagens com DALL-E 3 (apenas com modelos OpenAI)
-- Histórico de conversas para contexto contínuo
-- Mudança dinâmica entre modelos de IA
-- Interface modernizada com melhor detecção de modelos disponíveis
+```powershell
+# 1. Instale o Ollama: https://ollama.com/download
+ollama pull llama3.2
 
-## Instalação
+# 2. Instale as dependências
+pip install -r requirements.txt
 
-1. Certifique-se de ter o Python 3.8+ instalado em sua máquina.
-2. Clone este repositório ou baixe os arquivos do projeto.
-3. Instale as dependências do projeto: `pip install -r requirements.txt`
-4. Configure suas credenciais:
-   - **OpenAI**: Defina a variável de ambiente `OPENAI_API_KEY` com sua chave de API
-   - **Usuário**: (Opcional) Defina `USUARIO` para personalizar o prompt
+# 3. Execute
+python command.py
+```
 
-### Para usar Ollama (modelos locais):
-1. Instale o Ollama: https://ollama.ai
-2. Baixe o modelo Gemma3:1b: `ollama pull gemma3:1b`
-3. Inicie o Ollama: `ollama serve`
+---
 
 ## Uso
 
-### Comandos especiais:
-- `criar imagem`: Gera imagens com DALL-E 3 (apenas modelos OpenAI)
-- `mudar modelo`: Alterna entre modelos disponíveis
-- `execute [descrição]`: Executa comandos do sistema baseados na descrição
+O prompt mostra o diretório atual como um terminal real:
 
-### Exemplo de uso:
 ```
-root: execute listar arquivos da pasta atual
-Command: {dir}
-Command: Comando executado: dir
+Command v6.0  [llama3.2]
 
-root: criar imagem
-Imagem: um gato astronauta no espaço
-Command: Imagem criada e aberta no navegador.
+root@C:\DEV\Command> abra o vscode aqui
+  $ code .
+
+root@C:\DEV\Command> crie uma pasta dog com um arquivo boing.txt dentro
+  $ mkdir dog
+  $ copy nul dog\boing.txt
+
+root@C:\DEV\Command> !git status
+On branch main
+nothing to commit, working tree clean
+
+root@C:\DEV\Command> :qwen2.5:3b
+  modelo → qwen2.5:3b (ollama)
 ```
 
-## Modelos Recomendados
+## Comandos especiais
 
-- **GPT-5-nano**: Mais eficiente para tarefas simples
-- **GPT-4.1**: Melhor precisão para comandos complexos
-- **Gemma3:1b**: Modelo local rápido e eficiente
+| Entrada | Ação |
+|---|---|
+| `!<cmd>` | Executa diretamente sem passar pela IA |
+| `:<modelo>` | Troca o modelo de IA |
+| `:modelos` | Lista os modelos disponíveis |
+| `sair` / `exit` | Encerra o terminal |
+
+## Modo direto (`!`)
+
+Use `!` para rodar qualquer comando sem IA:
+
+```
+!dir
+!git log --oneline -5
+!python app.py
+!npm install
+```
+
+## Modelos suportados
+
+**Ollama (local, gratuito)** — detectado automaticamente:
+
+| Modelo | Tamanho | Indicado para |
+|---|---|---|
+| `llama3.2` | 2 GB | uso geral (padrão) |
+| `qwen2.5:3b` | 2 GB | código e comandos |
+| `gemma3:4b` | 3 GB | raciocínio |
+| `mistral` | 4 GB | uso geral avançado |
+
+**OpenAI (online)** — requer `OPENAI_API_KEY`:
+- `gpt-4o-mini`, `gpt-4.1-mini`, `gpt-5-nano`
+
+## Variáveis de ambiente
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `OPENAI_API_KEY` | — | Chave OpenAI (opcional) |
+| `USUARIO` | `root` | Nome no prompt |
+| `OLLAMA_URL` | `http://localhost:11434` | Endereço do Ollama |
 
 ## Segurança
 
-O Command possui proteções contra comandos perigosos como `format`, `del`, `erase`, etc. Sempre revise os comandos antes da execução.
+Comandos destrutivos (`format c:`, `del /f /s /q c:\`, etc.) são bloqueados automaticamente.
