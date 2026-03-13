@@ -13,11 +13,33 @@ import subprocess
 import requests
 from typing import List, Dict
 
-# Configuracoes
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-USUARIO = os.getenv("USUARIO", "root")
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-MODELOS_OPENAI = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-5-nano"]
+from rich.console import Console
+from rich.markup import escape
+from rich.panel import Panel
+from rich.rule import Rule
+from rich.text import Text
+from rich.theme import Theme
+
+# ── Tema ──────────────────────────────────────────────────────────────────────
+_theme = Theme({
+    "cmd":     "bold yellow",
+    "output":  "dim white",
+    "ai":      "white",
+    "success": "bold green",
+    "error":   "bold red",
+    "warn":    "yellow",
+    "info":    "bold cyan",
+    "muted":   "bright_black",
+    "banner":  "bold cyan",
+})
+
+console = Console(theme=_theme, highlight=False)
+
+# ── Configuracoes ─────────────────────────────────────────────────────────────
+OPENAI_API_KEY  = os.getenv("OPENAI_API_KEY", "")
+USUARIO         = os.getenv("USUARIO", os.getenv("USERNAME", "user"))
+OLLAMA_URL      = os.getenv("OLLAMA_URL", "http://localhost:11434")
+MODELOS_OPENAI  = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-5-nano"]
 MODELOS_PREFERIDOS = [
     "llama3.2", "llama3.2:3b",
     "qwen2.5:3b", "qwen2.5",
@@ -31,6 +53,15 @@ BLOQUEADOS = [
     "del /f /s /q c:\\", "rd /s /q c:\\",
     "rmdir /s /q c:\\",
 ]
+
+BANNER = """\
+[bold cyan] ██████╗ ██████╗ ███╗   ███╗███╗   ███╗ █████╗ ███╗   ██╗██████╗ [/]
+[bold cyan]██╔════╝██╔═══██╗████╗ ████║████╗ ████║██╔══██╗████╗  ██║██╔══██╗[/]
+[bold cyan]██║     ██║   ██║██╔████╔██║██╔████╔██║███████║██╔██╗ ██║██║  ██║[/]
+[cyan]██║     ██║   ██║██║╚██╔╝██║██║╚██╔╝██║██╔══██║██║╚██╗██║██║  ██║[/]
+[cyan]╚██████╗╚██████╔╝██║ ╚═╝ ██║██║ ╚═╝ ██║██║  ██║██║ ╚████║██████╔╝[/]
+[cyan] ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ [/]\
+"""
 
 SYSTEM_PROMPT = """You are Command, an AI-powered terminal for Windows CMD.
 Execute actions by wrapping commands in curly braces: {command}
@@ -46,7 +77,7 @@ Windows CMD syntax reference (always use these — never use Linux/bash syntax):
   Read file           → {type filename.txt}
   Delete file         → {del filename.txt}
   Copy file           → {copy source.txt dest.txt}
-  Move file           → {move source.txt dest\}
+  Move file           → {move source.txt dest\\}
   Rename              → {ren oldname.txt newname.txt}
   Open app            → {start appname}  or  {appname}
   Open Notepad        → {notepad}
@@ -63,19 +94,21 @@ Multi-step example — "create folder dog with empty file boing.txt inside":
 """
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
 def limpar_tela():
     os.system("cls")
 
 
 def prompt_dir(cwd: str) -> str:
-    """Exibe o diretorio atual de forma curta no prompt."""
+    """Retorna o markup de prompt colorido."""
     try:
         home = os.path.expanduser("~")
         if cwd.startswith(home):
             cwd = "~" + cwd[len(home):]
     except Exception:
         pass
-    return f"{USUARIO}@{cwd}> "
+    return f"[bold green]{USUARIO}[/][bright_black]@[/][bold cyan]{cwd}[/] [bold white]❯[/] "
 
 
 def executar(cmd: str, cwd: str) -> tuple[str, int, str]:
@@ -92,7 +125,6 @@ def executar(cmd: str, cwd: str) -> tuple[str, int, str]:
             return "", 0, novo
         return f"Diretorio nao encontrado: {path}", 1, cwd
 
-    # Bloqueia comandos destrutivos
     if any(b in cmd.lower() for b in BLOQUEADOS):
         return "Comando bloqueado por seguranca.", 1, cwd
 
@@ -170,34 +202,70 @@ def gerar_resposta_openai(historico: List[Dict], modelo: str, cwd: str) -> str:
         return f"Erro OpenAI: {e}"
 
 
+# ── Main ──────────────────────────────────────────────────────────────────────
+
 def main():
     limpar_tela()
     os.environ["PYTHONIOENCODING"] = "utf-8"
     cwd = os.getcwd()
 
+    # Banner
+    console.print(BANNER)
+    console.print(
+        "[muted]              Super Terminal com IA[/]  "
+        "[bright_black]─[/]  [muted]v6.0[/]"
+    )
+    console.print()
+
     # Detecta provider
-    modelo_ollama = detectar_melhor_modelo_ollama()
+    with console.status("[bold cyan]Detectando modelos...[/]", spinner="dots"):
+        modelo_ollama = detectar_melhor_modelo_ollama()
+
     if modelo_ollama:
         modelo_atual, provider = modelo_ollama, "ollama"
-        print(f"Command v6.0  [{modelo_atual}]")
+        console.print(Panel(
+            f"[success]●[/] [bold]Ollama[/]  "
+            f"[muted]modelo:[/] [info]{modelo_atual}[/]",
+            border_style="cyan",
+            padding=(0, 2),
+        ))
     elif OPENAI_API_KEY:
         modelo_atual, provider = "gpt-4o-mini", "openai"
-        print(f"Command v6.0  [{modelo_atual}]")
+        console.print(Panel(
+            f"[success]●[/] [bold]OpenAI[/]  "
+            f"[muted]modelo:[/] [info]{modelo_atual}[/]",
+            border_style="cyan",
+            padding=(0, 2),
+        ))
     else:
-        print("Command v6.0  — nenhum provider encontrado.")
-        print("Instale o Ollama: https://ollama.com/download")
-        print("Depois: ollama pull llama3.2")
+        console.print(Panel(
+            "[error]Nenhum provider encontrado.[/]\n\n"
+            "[muted]Instale o Ollama:[/]  [info]https://ollama.com/download[/]\n"
+            "[muted]Depois execute:[/]  [cmd]ollama pull llama3.2[/]",
+            title="[error]✗ Erro[/]",
+            border_style="red",
+            padding=(0, 2),
+        ))
         return
 
-    print("Dica: use ! para rodar comandos diretos  ex: !dir  |  :modelo para trocar\n")
+    # Atalhos
+    console.print()
+    console.print(
+        "  [muted]![/][bright_black]cmd[/]   executa direto   "
+        "[muted]:[/][bright_black]modelo[/]  troca modelo   "
+        "[muted]:[/][bright_black]modelos[/]  lista   "
+        "[muted]exit[/]  sair"
+    )
+    console.print(Rule(style="bright_black"))
+    console.print()
 
     historico: List[Dict] = []
 
     while True:
         try:
-            entrada = input(prompt_dir(cwd)).strip()
+            entrada = console.input(prompt_dir(cwd)).strip()
         except (KeyboardInterrupt, EOFError):
-            print("\nAte logo!")
+            console.print("\n[muted]Até logo![/]")
             break
 
         if not entrada:
@@ -205,8 +273,17 @@ def main():
 
         # Sair
         if entrada.lower() in ("sair", "exit", "quit"):
-            print("Ate logo!")
+            console.print("[muted]Até logo![/]")
             break
+
+        # Listar modelos
+        if entrada.lower() in (":modelos", ":models"):
+            disp = listar_modelos_ollama()
+            if disp:
+                console.print(f"  [info]Ollama:[/] {', '.join(disp)}")
+            if OPENAI_API_KEY:
+                console.print(f"  [info]OpenAI:[/] {', '.join(MODELOS_OPENAI)}")
+            continue
 
         # Trocar modelo  →  :llama3.2  ou  :gpt-4o-mini
         if entrada.startswith(":"):
@@ -215,34 +292,31 @@ def main():
                 continue
             provider = "openai" if novo in MODELOS_OPENAI else "ollama"
             modelo_atual = novo
-            print(f"  modelo → {modelo_atual} ({provider})")
-            continue
-
-        # Listar modelos
-        if entrada.lower() in (":modelos", ":models"):
-            disp = listar_modelos_ollama()
-            if disp:
-                print(f"  Ollama: {', '.join(disp)}")
-            if OPENAI_API_KEY:
-                print(f"  OpenAI: {', '.join(MODELOS_OPENAI)}")
+            console.print(f"  [muted]modelo →[/] [info]{modelo_atual}[/] [muted]({provider})[/]")
             continue
 
         # Modo direto  →  !dir  !git status  !python script.py
         if entrada.startswith("!"):
             cmd = entrada[1:].strip()
+            console.print(f"  [cmd]▶ {escape(cmd)}[/]")
             output, code, cwd = executar(cmd, cwd)
             if output:
-                print(output)
+                style = "error" if code != 0 else "output"
+                console.print(Text(output, style=style))
             continue
 
         # IA processa a entrada
         historico.append({"role": "user", "content": entrada})
 
-        resposta = (
-            gerar_resposta_ollama(historico, modelo_atual, cwd)
-            if provider == "ollama"
-            else gerar_resposta_openai(historico, modelo_atual, cwd)
-        )
+        with console.status(
+            f"[bold cyan]Pensando[/] [muted]({modelo_atual})[/]...",
+            spinner="dots",
+        ):
+            resposta = (
+                gerar_resposta_ollama(historico, modelo_atual, cwd)
+                if provider == "ollama"
+                else gerar_resposta_openai(historico, modelo_atual, cwd)
+            )
 
         historico.append({"role": "assistant", "content": resposta})
         if len(historico) > 30:
@@ -251,13 +325,20 @@ def main():
         texto, cmds = extrair_comandos(resposta)
 
         if texto:
-            print(f"\n  {texto}\n")
+            console.print(Panel(
+                Text(texto, style="white"),
+                border_style="cyan",
+                padding=(0, 2),
+            ))
 
         for cmd in cmds:
-            print(f"  $ {cmd}")
+            console.print(f"\n  [cmd]▶ {escape(cmd)}[/]")
             output, code, cwd = executar(cmd, cwd)
             if output:
-                print(output)
+                style = "error" if code != 0 else "output"
+                console.print(Text(output, style=style))
+
+        console.print()
 
 
 if __name__ == "__main__":

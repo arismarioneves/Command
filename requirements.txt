@@ -1,2 +1,3 @@
 requests>=2.25.0
-openai>=1.0.0  # Opcional — necessário apenas para modelos OpenAI e criação de imagens
+openai>=1.0.0  # Opcional — necessário apenas para modelos OpenAI
+rich>=13.0.0
