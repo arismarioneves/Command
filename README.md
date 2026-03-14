@@ -14,16 +14,29 @@ ou
 powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/arismarioneves/Command/main/install.ps1 | iex"
 ```
 
+O instalador pergunta o modo desejado:
+
+```
+  Escolha o modo de funcionamento:
+
+    [1] Local   — Ollama + qwen2.5:3b  (gratuito, roda na sua maquina)
+    [2] Online  — OpenAI API            (requer chave, sem download de LLM)
+```
+
+- **Modo Local:** instala Ollama e baixa o modelo `qwen2.5:3b` (~2 GB). Sem custos, funciona offline.
+- **Modo Online:** pede sua `OPENAI_API_KEY` e usa `gpt-4o-mini`. Nenhum download de LLM necessário.
+
 ## Instalação manual
 
 ```powershell
-# 1. Instale o Ollama: https://ollama.com/download
+# Modo local — Ollama
 ollama pull qwen2.5:3b
-
-# 2. Instale as dependências
 pip install -r requirements.txt
+python command.py
 
-# 3. Execute
+# Modo online — OpenAI
+set OPENAI_API_KEY=sk-...
+pip install -r requirements.txt
 python command.py
 ```
 
