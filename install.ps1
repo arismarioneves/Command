@@ -21,10 +21,18 @@ Write-Host ""
 # Cria diretorio de instalacao
 New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
 
+# ── Utilitario: recarrega PATH da sessao atual a partir do registro ────────────
+function Refresh-EnvPath {
+    $machine = [Environment]::GetEnvironmentVariable("Path", "Machine")
+    $user    = [Environment]::GetEnvironmentVariable("Path", "User")
+    $env:Path = ($machine, $user | Where-Object { $_ }) -join ";"
+}
+
 # ── [1/5] Python ──────────────────────────────────────────────────────────────
 if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
     Write-Host "  [1/5] Instalando Python..." -ForegroundColor Yellow
     winget install --id Python.Python.3.12 -e --silent
+    Refresh-EnvPath
 } else {
     Write-Host "  [1/5] Python OK  $(python --version)" -ForegroundColor Green
 }
@@ -34,6 +42,7 @@ if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
     Write-Host "  [2/5] Instalando Ollama..." -ForegroundColor Yellow
     winget install --id Ollama.Ollama -e --silent
     Start-Sleep -Seconds 3
+    Refresh-EnvPath
 } else {
     Write-Host "  [2/5] Ollama OK  $(ollama --version)" -ForegroundColor Green
 }
@@ -70,6 +79,9 @@ if ($userPath -notlike "*\.command*") {
     Write-Host "        Adicionado ao PATH do usuario" -ForegroundColor DarkGray
 }
 
+# Recarrega PATH na sessao atual para que 'command' funcione imediatamente
+Refresh-EnvPath
+
 Write-Host "  [5/5] Launcher criado" -ForegroundColor Green
 
 # ── Conclusao ─────────────────────────────────────────────────────────────────
@@ -77,9 +89,6 @@ Write-Host ""
 Write-Host ("  " + ("─" * 62)) -ForegroundColor DarkGray
 Write-Host "  ✓ Instalacao concluida!" -ForegroundColor Green
 Write-Host ""
-Write-Host "  Para iniciar agora:" -ForegroundColor White
-Write-Host "    python $INSTALL_DIR\command.py" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "  Apos reiniciar o terminal, use apenas:" -ForegroundColor White
+Write-Host "  Para iniciar:" -ForegroundColor White
 Write-Host "    command" -ForegroundColor Cyan
 Write-Host ""
