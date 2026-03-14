@@ -35,11 +35,53 @@ _theme = Theme({
 
 console = Console(theme=_theme, highlight=False)
 
+# ── Arquivo .env ───────────────────────────────────────────────────────────────
+ENV_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+
+
+def _load_env_file():
+    """Carrega .env sem sobrescrever variáveis já definidas no ambiente."""
+    if not os.path.exists(ENV_FILE):
+        return
+    with open(ENV_FILE, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, _, v = line.partition("=")
+                k, v = k.strip(), v.strip()
+                if k not in os.environ:
+                    os.environ[k] = v
+
+
+def salvar_modelo_env(modelo: str):
+    """Atualiza MODELO_ATUAL no arquivo .env."""
+    if not os.path.exists(ENV_FILE):
+        return
+    lines = []
+    encontrado = False
+    with open(ENV_FILE, encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("MODELO_ATUAL="):
+                lines.append(f"MODELO_ATUAL={modelo}\n")
+                encontrado = True
+            else:
+                lines.append(line)
+    if not encontrado:
+        lines.append(f"MODELO_ATUAL={modelo}\n")
+    with open(ENV_FILE, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+
+_load_env_file()
+
 # ── Configuracoes ─────────────────────────────────────────────────────────────
 OPENAI_API_KEY  = os.getenv("OPENAI_API_KEY", "")
 USUARIO         = os.getenv("USUARIO", os.getenv("USERNAME", "user"))
 OLLAMA_URL      = os.getenv("OLLAMA_URL", "http://localhost:11434")
-MODELOS_OPENAI  = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-5-nano"]
+PROVIDER_ENV    = os.getenv("PROVIDER", "")
+MODELO_ENV      = os.getenv("MODELO_ATUAL", "")
+
+MODELOS_OPENAI  = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-5-mini", "gpt-5-nano"]
 MODELOS_PREFERIDOS = [
     "qwen2.5:3b", "qwen2.5",
     "gemma3:1b", "gemma3:4b",
@@ -163,14 +205,6 @@ def detectar_melhor_modelo_ollama() -> str | None:
         return None
 
 
-def listar_modelos_ollama() -> List[str]:
-    try:
-        resp = requests.get(f"{OLLAMA_URL}/api/tags", timeout=3)
-        return [m["name"] for m in resp.json().get("models", [])]
-    except Exception:
-        return []
-
-
 def gerar_resposta_ollama(historico: List[Dict], modelo: str, cwd: str) -> str:
     mensagens = [
         {"role": "system", "content": SYSTEM_PROMPT + f"\n\nCurrent directory: {cwd}"}
@@ -185,6 +219,15 @@ def gerar_resposta_ollama(historico: List[Dict], modelo: str, cwd: str) -> str:
         return resp.json()["message"]["content"].strip()
     except Exception as e:
         return f"Erro Ollama: {e}"
+
+
+def _modelos_ollama_instalados() -> List[str]:
+    """Retorna os modelos instalados localmente no Ollama."""
+    try:
+        resp = requests.get(f"{OLLAMA_URL}/api/tags", timeout=3)
+        return [m["name"] for m in resp.json().get("models", [])]
+    except Exception:
+        return []
 
 
 def gerar_resposta_openai(historico: List[Dict], modelo: str, cwd: str) -> str:
@@ -217,43 +260,53 @@ def main():
     )
     console.print()
 
-    # Detecta provider
-    with console.status("[bold cyan]Detectando modelos...[/]", spinner="dots"):
-        modelo_ollama = detectar_melhor_modelo_ollama()
+    # Detecta provider e modelo a partir do .env; auto-detecta como fallback
+    provider = PROVIDER_ENV
+    modelo_atual = MODELO_ENV
 
-    if modelo_ollama:
-        modelo_atual, provider = modelo_ollama, "ollama"
-        console.print(Panel(
-            f"[success]●[/] [bold]Ollama[/]  "
-            f"[muted]modelo:[/] [info]{modelo_atual}[/]",
-            border_style="cyan",
-            padding=(0, 2),
-        ))
-    elif OPENAI_API_KEY:
-        modelo_atual, provider = "gpt-4o-mini", "openai"
-        console.print(Panel(
-            f"[success]●[/] [bold]OpenAI[/]  "
-            f"[muted]modelo:[/] [info]{modelo_atual}[/]",
-            border_style="cyan",
-            padding=(0, 2),
-        ))
-    else:
-        console.print(Panel(
-            "[error]Nenhum provider encontrado.[/]\n\n"
-            "[muted]Instale o Ollama:[/]  [info]https://ollama.com/download[/]\n"
-            "[muted]Depois execute:[/]  [cmd]ollama pull qwen2.5:3b[/]",
-            title="[error]✗ Erro[/]",
-            border_style="red",
-            padding=(0, 2),
-        ))
-        return
+    if not provider or not modelo_atual:
+        with console.status("[bold cyan]Detectando modelos...[/]", spinner="dots"):
+            modelo_ollama = detectar_melhor_modelo_ollama()
+
+        if modelo_ollama:
+            if not provider:
+                provider = "ollama"
+            if not modelo_atual:
+                modelo_atual = modelo_ollama
+        elif OPENAI_API_KEY:
+            if not provider:
+                provider = "openai"
+            if not modelo_atual:
+                modelo_atual = "gpt-5-nano"
+        else:
+            console.print(Panel(
+                "[error]Nenhum provider encontrado.[/]\n\n"
+                "[muted]Crie um[/] [cmd].env[/] [muted]na pasta do command.py com:[/]\n"
+                "  [bright_black]PROVIDER=ollama[/]\n"
+                "  [bright_black]MODELO_ATUAL=qwen2.5:3b[/]\n\n"
+                "[muted]Ou para OpenAI:[/]\n"
+                "  [bright_black]PROVIDER=openai[/]\n"
+                "  [bright_black]MODELO_ATUAL=gpt-4o-mini[/]\n"
+                "  [bright_black]OPENAI_API_KEY=sk-...[/]",
+                title="[error]✗ Erro[/]",
+                border_style="red",
+                padding=(0, 2),
+            ))
+            return
+
+    provider_label = "Ollama" if provider == "ollama" else "OpenAI"
+    console.print(Panel(
+        f"[success]●[/] [bold]{provider_label}[/]  "
+        f"[muted]modelo:[/] [info]{modelo_atual}[/]",
+        border_style="cyan",
+        padding=(0, 2),
+    ))
 
     # Atalhos
     console.print()
     console.print(
         "  [muted]![/][bright_black]cmd[/]   executa direto   "
         "[muted]:[/][bright_black]modelo[/]  troca modelo   "
-        "[muted]:[/][bright_black]modelos[/]  lista   "
         "[muted]exit[/]  sair"
     )
     console.print(Rule(style="bright_black"))
@@ -276,23 +329,26 @@ def main():
             console.print("[muted]Até logo![/]")
             break
 
-        # Listar modelos
-        if entrada.lower() in (":modelos", ":models"):
-            disp = listar_modelos_ollama()
-            if disp:
-                console.print(f"  [info]Ollama:[/] {', '.join(disp)}")
-            if OPENAI_API_KEY:
-                console.print(f"  [info]OpenAI:[/] {', '.join(MODELOS_OPENAI)}")
-            continue
-
-        # Trocar modelo  →  :llama3.2  ou  :gpt-4o-mini
+        # Trocar modelo  →  :llama3.2  ou  :  (interativo)
         if entrada.startswith(":"):
             novo = entrada[1:].strip()
             if not novo:
+                # Sugestões: modelos instalados no Ollama ou lista OpenAI
+                if provider == "ollama":
+                    instalados = _modelos_ollama_instalados()
+                    sugestoes = instalados if instalados else MODELOS_PREFERIDOS
+                else:
+                    sugestoes = MODELOS_OPENAI
+                console.print(f"  [muted]Sugestões:[/] [bright_black]{',  '.join(sugestoes)}[/]")
+                try:
+                    novo = console.input("  [muted]Novo modelo →[/] ").strip()
+                except (KeyboardInterrupt, EOFError):
+                    continue
+            if not novo:
                 continue
-            provider = "openai" if novo in MODELOS_OPENAI else "ollama"
             modelo_atual = novo
-            console.print(f"  [muted]modelo →[/] [info]{modelo_atual}[/] [muted]({provider})[/]")
+            salvar_modelo_env(novo)
+            console.print(f"  [muted]modelo →[/] [info]{modelo_atual}[/]")
             continue
 
         # Modo direto  →  !dir  !git status  !python script.py

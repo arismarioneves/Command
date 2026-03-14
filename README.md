@@ -26,16 +26,38 @@ O instalador pergunta o modo desejado:
 - **Modo Local:** instala Ollama e baixa o modelo `qwen2.5:3b` (~2 GB). Sem custos, funciona offline.
 - **Modo Online:** pede sua `OPENAI_API_KEY` e usa `gpt-4o-mini`. Nenhum download de LLM necessário.
 
+O provider fica salvo no `.env`. Para trocar de provider (Ollama ↔ OpenAI), basta reinstalar.
+
 ## Instalação manual
 
+Em ambos os modos é necessário um arquivo `.env` na mesma pasta do `command.py`. Copie o exemplo e ajuste:
+
 ```powershell
-# Modo local — Ollama
+copy .env.example .env
+```
+
+**Modo local — Ollama:**
+
+```env
+PROVIDER=ollama
+MODELO_ATUAL=qwen2.5:3b
+```
+
+```powershell
 ollama pull qwen2.5:3b
 pip install -r requirements.txt
 python command.py
+```
 
-# Modo online — OpenAI
-set OPENAI_API_KEY=sk-...
+**Modo online — OpenAI:**
+
+```env
+PROVIDER=openai
+MODELO_ATUAL=gpt-5-nano
+OPENAI_API_KEY=sk-...
+```
+
+```powershell
 pip install -r requirements.txt
 python command.py
 ```
@@ -47,8 +69,6 @@ python command.py
 O prompt mostra o diretório atual como um terminal real:
 
 ```
-Command v6.0  [qwen2.5:3b]
-
 root@C:\DEV\Command> abra o vscode aqui
   $ code .
 
@@ -60,8 +80,16 @@ root@C:\DEV\Command> !git status
 On branch main
 nothing to commit, working tree clean
 
-root@C:\DEV\Command> :qwen2.5:3b
-  modelo → qwen2.5:3b (ollama)
+root@C:\DEV\Command> :llama3.2
+  modelo → llama3.2
+```
+
+Para trocar com sugestões interativas, digite apenas `:` e pressione Enter — o terminal lista os modelos disponíveis e pede para você escolher:
+
+```
+root@C:\DEV\Command> :
+  Sugestões: qwen2.5:3b,  gemma3:1b,  gemma3:4b,  llama3.2,  mistral
+  Novo modelo → [você digita aqui]
 ```
 
 ## Comandos especiais
@@ -69,8 +97,8 @@ root@C:\DEV\Command> :qwen2.5:3b
 | Entrada | Ação |
 |---|---|
 | `!<cmd>` | Executa diretamente sem passar pela IA |
-| `:<modelo>` | Troca o modelo de IA |
-| `:modelos` | Lista os modelos disponíveis |
+| `:` | Troca o modelo (mostra sugestões e pede o nome) |
+| `:<modelo>` | Troca direto para o modelo informado |
 | `sair` / `exit` | Encerra o terminal |
 
 ## Modo direto (`!`)
@@ -86,7 +114,7 @@ Use `!` para rodar qualquer comando sem IA:
 
 ## Modelos suportados
 
-**Ollama (local, gratuito)** — detectado automaticamente:
+**Ollama (local, gratuito):**
 
 | Modelo | Tamanho | Indicado para |
 |---|---|---|
@@ -96,14 +124,25 @@ Use `!` para rodar qualquer comando sem IA:
 | `llama3.2` | 2 GB | uso geral |
 | `mistral` | 4 GB | uso geral avançado |
 
-**OpenAI (online)** — requer `OPENAI_API_KEY`:
-- `gpt-4o-mini`, `gpt-4.1-mini`, `gpt-5-nano`
+**OpenAI (online):**
 
-## Variáveis de ambiente
+| Modelo | Descrição |
+|---|---|
+| `gpt-4o-mini` | GPT-4o mini — rápido e econômico |
+| `gpt-4.1-mini` | GPT-4.1 mini — econômico, geração mais recente |
+| `gpt-4.1-nano` | GPT-4.1 nano — ultra leve e barato |
+| `gpt-5-mini` | GPT-5 mini — capacidade avançada com baixo custo |
+| `gpt-5-nano` | GPT-5 nano — mais leve da família GPT-5 (padrão) |
+
+Para usar qualquer outro modelo do Ollama ou OpenAI, basta digitá-lo com `:`.
+
+## Variáveis de ambiente (`.env`)
 
 | Variável | Padrão | Descrição |
 |---|---|---|
-| `OPENAI_API_KEY` | — | Chave OpenAI (opcional) |
+| `PROVIDER` | — | Provider ativo: `ollama` ou `openai` |
+| `MODELO_ATUAL` | — | Modelo em uso (atualizado automaticamente ao trocar) |
+| `OPENAI_API_KEY` | — | Chave OpenAI (obrigatória no modo online) |
 | `USUARIO` | `root` | Nome no prompt |
 | `OLLAMA_URL` | `http://localhost:11434` | Endereço do Ollama |
 

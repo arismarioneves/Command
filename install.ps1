@@ -102,24 +102,28 @@ try {
     exit 1
 }
 
-# ── [4 ou 5] Launcher + PATH ──────────────────────────────────────────────────
+# ── [4 ou 5] Launcher + .env + PATH ───────────────────────────────────────────
 $step = if ($modoOnline) { 4 } else { 5 }
 Write-Host "  [$step/$totalSteps] Criando launcher..." -ForegroundColor Yellow
 
+# Launcher simples — as configuracoes ficam no .env
 $launcher = "$INSTALL_DIR\command.bat"
 "@python `"$INSTALL_DIR\command.py`" %*" | Out-File -FilePath $launcher -Encoding ascii
 
-# Salva a chave da OpenAI no arquivo .env (modo online)
+# Salva configuracoes no .env
 if ($modoOnline) {
-    "OPENAI_API_KEY=$apiKey" | Out-File -FilePath "$INSTALL_DIR\.env" -Encoding utf8
-    Write-Host "        Chave OpenAI salva em $INSTALL_DIR\.env" -ForegroundColor DarkGray
-
-    # Injeta a chave no launcher para que fique disponivel no processo
     @"
-@echo off
-set OPENAI_API_KEY=$apiKey
-python "$INSTALL_DIR\command.py" %*
-"@ | Out-File -FilePath $launcher -Encoding ascii
+PROVIDER=openai
+MODELO_ATUAL=gpt-5-nano
+OPENAI_API_KEY=$apiKey
+"@ | Out-File -FilePath "$INSTALL_DIR\.env" -Encoding utf8
+    Write-Host "        Configuracoes salvas em $INSTALL_DIR\.env" -ForegroundColor DarkGray
+} else {
+    @"
+PROVIDER=ollama
+MODELO_ATUAL=qwen2.5:3b
+"@ | Out-File -FilePath "$INSTALL_DIR\.env" -Encoding utf8
+    Write-Host "        Configuracoes salvas em $INSTALL_DIR\.env" -ForegroundColor DarkGray
 }
 
 # Adiciona ao PATH do usuario (sem sobrescrever)
@@ -140,10 +144,12 @@ Write-Host ("  " + ("─" * 62)) -ForegroundColor DarkGray
 Write-Host "  ✓ Instalacao concluida!" -ForegroundColor Green
 Write-Host ""
 if ($modoOnline) {
-    Write-Host "  Modo: Online (OpenAI)" -ForegroundColor DarkGray
+    Write-Host "  Modo: Online (OpenAI)  —  modelo: gpt-5-nano" -ForegroundColor DarkGray
 } else {
-    Write-Host "  Modo: Local (Ollama)" -ForegroundColor DarkGray
+    Write-Host "  Modo: Local (Ollama)   —  modelo: qwen2.5:3b" -ForegroundColor DarkGray
 }
+Write-Host "  Para trocar de modelo:  :" -ForegroundColor DarkGray
+Write-Host "  Para trocar de provider: reinstale com a outra opcao" -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "  Para iniciar:" -ForegroundColor White
 Write-Host "    command" -ForegroundColor Cyan
