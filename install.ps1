@@ -47,8 +47,8 @@ if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
     Write-Host "  [2/5] Ollama OK  $(ollama --version)" -ForegroundColor Green
 }
 
-Write-Host "        Baixando llama3.2..." -ForegroundColor DarkGray
-ollama pull llama3.2
+Write-Host "        Baixando qwen2.5:3b..." -ForegroundColor DarkGray
+ollama pull qwen2.5:3b
 
 # ── [3/5] Dependencias Python ─────────────────────────────────────────────────
 Write-Host "  [3/5] Instalando dependencias Python..." -ForegroundColor Yellow

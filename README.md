@@ -8,11 +8,17 @@ Super terminal com IA para Windows — powered by **Ollama** (local) ou **OpenAI
 powershell -ExecutionPolicy Bypass -c "irm https://aiu4.com/install.ps1 | iex"
 ```
 
+ou
+
+```powershell
+powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/arismarioneves/Command/main/install.ps1 | iex"
+```
+
 ## Instalação manual
 
 ```powershell
 # 1. Instale o Ollama: https://ollama.com/download
-ollama pull llama3.2
+ollama pull qwen2.5:3b
 
 # 2. Instale as dependências
 pip install -r requirements.txt
@@ -28,7 +34,7 @@ python command.py
 O prompt mostra o diretório atual como um terminal real:
 
 ```
-Command v6.0  [llama3.2]
+Command v6.0  [qwen2.5:3b]
 
 root@C:\DEV\Command> abra o vscode aqui
   $ code .
@@ -71,9 +77,10 @@ Use `!` para rodar qualquer comando sem IA:
 
 | Modelo | Tamanho | Indicado para |
 |---|---|---|
-| `llama3.2` | 2 GB | uso geral (padrão) |
-| `qwen2.5:3b` | 2 GB | código e comandos |
+| `qwen2.5:3b` | 2 GB | código e comandos (padrão) |
+| `gemma3:1b` | 800 MB | máquinas com pouca RAM |
 | `gemma3:4b` | 3 GB | raciocínio |
+| `llama3.2` | 2 GB | uso geral |
 | `mistral` | 4 GB | uso geral avançado |
 
 **OpenAI (online)** — requer `OPENAI_API_KEY`:

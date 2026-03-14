@@ -3,7 +3,7 @@
 # Versão: 6.0
 #
 # Instalacao:
-#   1. Ollama: https://ollama.com/download  →  ollama pull llama3.2
+#   1. Ollama: https://ollama.com/download  →  ollama pull qwen2.5:3b
 #   2. pip install -r requirements.txt
 #   3. python command.py
 
@@ -41,9 +41,9 @@ USUARIO         = os.getenv("USUARIO", os.getenv("USERNAME", "user"))
 OLLAMA_URL      = os.getenv("OLLAMA_URL", "http://localhost:11434")
 MODELOS_OPENAI  = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-5-nano"]
 MODELOS_PREFERIDOS = [
-    "llama3.2", "llama3.2:3b",
     "qwen2.5:3b", "qwen2.5",
-    "gemma3:4b", "gemma3:1b",
+    "gemma3:1b", "gemma3:4b",
+    "llama3.2", "llama3.2:3b",
     "mistral", "llama3.1",
 ]
 
@@ -241,7 +241,7 @@ def main():
         console.print(Panel(
             "[error]Nenhum provider encontrado.[/]\n\n"
             "[muted]Instale o Ollama:[/]  [info]https://ollama.com/download[/]\n"
-            "[muted]Depois execute:[/]  [cmd]ollama pull llama3.2[/]",
+            "[muted]Depois execute:[/]  [cmd]ollama pull qwen2.5:3b[/]",
             title="[error]✗ Erro[/]",
             border_style="red",
             padding=(0, 2),
