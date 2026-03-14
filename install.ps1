@@ -3,6 +3,10 @@
 
 $ErrorActionPreference = "Stop"
 
+# Força UTF-8 para renderizar corretamente os caracteres do banner
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
 $REPO        = "https://raw.githubusercontent.com/arismarioneves/Command/main"
 $INSTALL_DIR = "$env:USERPROFILE\.command"
 
