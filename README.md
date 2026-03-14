@@ -2,6 +2,8 @@
 
 Super terminal com IA para Windows — powered by **Ollama** (local) ou **OpenAI** (online).
 
+![Command Terminal](terminal.png)
+
 ## Instalação rápida
 
 ```powershell
