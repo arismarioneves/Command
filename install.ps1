@@ -116,13 +116,13 @@ if ($modoOnline) {
 PROVIDER=openai
 MODELO_ATUAL=gpt-5-nano
 OPENAI_API_KEY=$apiKey
-"@ | Out-File -FilePath "$INSTALL_DIR\.env" -Encoding utf8
+"@ | Out-File -FilePath "$INSTALL_DIR\.env" -Encoding ascii
     Write-Host "        Configuracoes salvas em $INSTALL_DIR\.env" -ForegroundColor DarkGray
 } else {
     @"
 PROVIDER=ollama
 MODELO_ATUAL=qwen2.5:3b
-"@ | Out-File -FilePath "$INSTALL_DIR\.env" -Encoding utf8
+"@ | Out-File -FilePath "$INSTALL_DIR\.env" -Encoding ascii
     Write-Host "        Configuracoes salvas em $INSTALL_DIR\.env" -ForegroundColor DarkGray
 }
 
