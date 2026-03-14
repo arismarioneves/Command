@@ -238,7 +238,7 @@ def gerar_resposta_openai(historico: List[Dict], modelo: str, cwd: str) -> str:
             {"role": "system", "content": SYSTEM_PROMPT + f"\n\nCurrent directory: {cwd}"}
         ] + historico
         resp = client.chat.completions.create(
-            model=modelo, messages=mensagens, temperature=0, max_tokens=500,
+            model=modelo, messages=mensagens,
         )
         return resp.choices[0].message.content
     except Exception as e:
