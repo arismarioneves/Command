@@ -49,8 +49,7 @@ def _load_env_file():
             if line and not line.startswith("#") and "=" in line:
                 k, _, v = line.partition("=")
                 k, v = k.strip(), v.strip()
-                if k not in os.environ:
-                    os.environ[k] = v
+                os.environ[k] = v
 
 
 def salvar_modelo_env(modelo: str):
