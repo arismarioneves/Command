@@ -43,7 +43,7 @@ def _load_env_file():
     """Carrega .env sem sobrescrever variáveis já definidas no ambiente."""
     if not os.path.exists(ENV_FILE):
         return
-    with open(ENV_FILE, encoding="utf-8") as f:
+    with open(ENV_FILE, encoding="utf-8-sig") as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
@@ -58,7 +58,7 @@ def salvar_modelo_env(modelo: str):
         return
     lines = []
     encontrado = False
-    with open(ENV_FILE, encoding="utf-8") as f:
+    with open(ENV_FILE, encoding="utf-8-sig") as f:
         for line in f:
             if line.startswith("MODELO_ATUAL="):
                 lines.append(f"MODELO_ATUAL={modelo}\n")
