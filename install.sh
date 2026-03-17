@@ -138,11 +138,12 @@ STEP=4; $MODO_ONLINE || STEP=5
 printf "${YELLOW}  [$STEP/$TOTAL_STEPS] Criando launcher...${NC}\n"
 
 # Launcher usa o Python do venv
-cat > "$INSTALL_DIR/command" <<EOF
+# Nota: nao pode se chamar "command" pois eh builtin do bash/zsh
+cat > "$INSTALL_DIR/cmd" <<EOF
 #!/usr/bin/env bash
 exec "$INSTALL_DIR/venv/bin/python3" "$INSTALL_DIR/command.py" "\$@"
 EOF
-chmod +x "$INSTALL_DIR/command"
+chmod +x "$INSTALL_DIR/cmd"
 
 # .env
 if $MODO_ONLINE; then
@@ -194,5 +195,5 @@ printf "${GRAY}  Para trocar de modelo:  :${NC}\n"
 printf "${GRAY}  Para trocar de provider: reinstale com a outra opcao${NC}\n"
 echo ""
 printf "${WHITE}  Para iniciar (abra um novo terminal ou execute):${NC}\n"
-printf "${CYAN}    source $SHELL_RC && command${NC}\n"
+printf "${CYAN}    source $SHELL_RC && cmd${NC}\n"
 echo ""

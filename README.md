@@ -31,6 +31,8 @@ O instalador pergunta o modo desejado:
 
 O provider fica salvo no `.env`. Para trocar de provider (Ollama ↔ OpenAI), basta reinstalar.
 
+> **Windows:** o comando é `command` — **macOS/Linux:** o comando é `cmd` (`command` é um builtin do bash/zsh e não pode ser sobrescrito pelo PATH).
+
 ## Instalação manual
 
 Em ambos os modos é necessário um arquivo `.env` na mesma pasta do `command.py`. Copie o exemplo e ajuste:
