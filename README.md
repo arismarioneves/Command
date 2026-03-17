@@ -7,13 +7,13 @@ Super terminal com IA para Windows — powered by **Ollama** (local) ou **OpenAI
 ## Instalação rápida
 
 ```powershell
-powershell -ExecutionPolicy Bypass -c "irm https://aiu4.com/install.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "irm https://aiu4.com/command/install.ps1 | iex"
 ```
 
 ou
 
 ```powershell
-powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/arismarioneves/Command/main/install.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/arismarioneves/command/main/install.ps1 | iex"
 ```
 
 O instalador pergunta o modo desejado:
