@@ -106,16 +106,29 @@ if ! $MODO_ONLINE; then
     ollama pull qwen2.5:3b
 fi
 
-# ── [2 ou 3] Dependencias Python ──────────────────────────────────────────────
+# ── [2 ou 3] Dependencias Python (virtualenv isolado) ─────────────────────────
 STEP=2; $MODO_ONLINE || STEP=3
-printf "${YELLOW}  [$STEP/$TOTAL_STEPS] Instalando dependencias Python...${NC}\n"
-python3 -m pip install -q requests openai "rich>=13.0.0"
+printf "${YELLOW}  [$STEP/$TOTAL_STEPS] Criando ambiente virtual...${NC}\n"
+mkdir -p "$INSTALL_DIR"
+
+# Garante que python3-venv está disponível (Debian/Ubuntu)
+if ! python3 -m venv --help &>/dev/null; then
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get install -y python3-venv python3-full
+    fi
+fi
+
+python3 -m venv "$INSTALL_DIR/venv"
+VENV_PIP="$INSTALL_DIR/venv/bin/pip"
+VENV_PY="$INSTALL_DIR/venv/bin/python3"
+
+"$VENV_PIP" install -q --upgrade pip
+"$VENV_PIP" install -q requests openai "rich>=13.0.0"
 printf "${GREEN}  [$STEP/$TOTAL_STEPS] Dependencias OK${NC}\n"
 
 # ── [3 ou 4] Download command.py ──────────────────────────────────────────────
 STEP=3; $MODO_ONLINE || STEP=4
 printf "${YELLOW}  [$STEP/$TOTAL_STEPS] Baixando Command...${NC}\n"
-mkdir -p "$INSTALL_DIR"
 curl -fsSL "$REPO/command.py"       -o "$INSTALL_DIR/command.py"
 curl -fsSL "$REPO/requirements.txt" -o "$INSTALL_DIR/requirements.txt"
 printf "${GREEN}  [$STEP/$TOTAL_STEPS] command.py salvo em $INSTALL_DIR${NC}\n"
@@ -124,10 +137,10 @@ printf "${GREEN}  [$STEP/$TOTAL_STEPS] command.py salvo em $INSTALL_DIR${NC}\n"
 STEP=4; $MODO_ONLINE || STEP=5
 printf "${YELLOW}  [$STEP/$TOTAL_STEPS] Criando launcher...${NC}\n"
 
-# Launcher
+# Launcher usa o Python do venv
 cat > "$INSTALL_DIR/command" <<EOF
 #!/usr/bin/env bash
-exec python3 "$INSTALL_DIR/command.py" "\$@"
+exec "$INSTALL_DIR/venv/bin/python3" "$INSTALL_DIR/command.py" "\$@"
 EOF
 chmod +x "$INSTALL_DIR/command"
 
