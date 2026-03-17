@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Command - Instalador para macOS e Linux
-# Uso: curl -fsSL https://aiu4.com/command/install.sh | bash
+# Uso: curl -fsSL https://raw.githubusercontent.com/arismarioneves/command/main/install.sh | bash
 
 set -euo pipefail
 
@@ -8,7 +8,7 @@ set -euo pipefail
 export LANG=en_US.UTF-8 2>/dev/null || true
 export LC_ALL=en_US.UTF-8 2>/dev/null || true
 
-REPO="https://raw.githubusercontent.com/arismarioneves/Command/main"
+REPO="https://raw.githubusercontent.com/arismarioneves/command/main"
 INSTALL_DIR="$HOME/.command"
 OS="$(uname -s)"
 
