@@ -1,19 +1,20 @@
 # Command
-
-Super terminal com IA para Windows — powered by **Ollama** (local) ou **OpenAI** (online).
+Super terminal com IA para Windows, macOS e Linux — powered by **Ollama** (local) ou **OpenAI** (online).
 
 ![Command Terminal](terminal.png)
 
 ## Instalação rápida
 
+**Windows**
+
 ```powershell
 powershell -ExecutionPolicy Bypass -c "irm https://aiu4.com/command/install.ps1 | iex"
 ```
 
-ou
+**macOS / Linux**
 
-```powershell
-powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/arismarioneves/command/main/install.ps1 | iex"
+```bash
+curl -fsSL https://aiu4.com/command/install.sh | bash
 ```
 
 O instalador pergunta o modo desejado:
@@ -26,7 +27,7 @@ O instalador pergunta o modo desejado:
 ```
 
 - **Modo Local:** instala Ollama e baixa o modelo `qwen2.5:3b` (~2 GB). Sem custos, funciona offline.
-- **Modo Online:** pede sua `OPENAI_API_KEY` e usa `gpt-4o-mini`. Nenhum download de LLM necessário.
+- **Modo Online:** pede sua `OPENAI_API_KEY` e usa `gpt-5-nano`. Nenhum download de LLM necessário.
 
 O provider fica salvo no `.env`. Para trocar de provider (Ollama ↔ OpenAI), basta reinstalar.
 
@@ -34,8 +35,9 @@ O provider fica salvo no `.env`. Para trocar de provider (Ollama ↔ OpenAI), ba
 
 Em ambos os modos é necessário um arquivo `.env` na mesma pasta do `command.py`. Copie o exemplo e ajuste:
 
-```powershell
-copy .env.example .env
+```bash
+cp .env.example .env   # macOS/Linux
+copy .env.example .env  # Windows
 ```
 
 **Modo local — Ollama:**
@@ -45,10 +47,11 @@ PROVIDER=ollama
 MODELO_ATUAL=qwen2.5:3b
 ```
 
-```powershell
+```bash
 ollama pull qwen2.5:3b
 pip install -r requirements.txt
-python command.py
+python command.py         # Windows
+python3 command.py        # macOS/Linux
 ```
 
 **Modo online — OpenAI:**
@@ -59,9 +62,10 @@ MODELO_ATUAL=gpt-5-nano
 OPENAI_API_KEY=sk-...
 ```
 
-```powershell
+```bash
 pip install -r requirements.txt
-python command.py
+python command.py         # Windows
+python3 command.py        # macOS/Linux
 ```
 
 ---
@@ -108,7 +112,8 @@ root@C:\DEV\Command> :
 Use `!` para rodar qualquer comando sem IA:
 
 ```
-!dir
+!dir              # Windows
+!ls               # macOS/Linux
 !git log --oneline -5
 !python app.py
 !npm install
@@ -147,6 +152,18 @@ Para usar qualquer outro modelo do Ollama ou OpenAI, basta digitá-lo com `:`.
 | `OPENAI_API_KEY` | — | Chave OpenAI (obrigatória no modo online) |
 | `USUARIO` | `root` | Nome no prompt |
 | `OLLAMA_URL` | `http://localhost:11434` | Endereço do Ollama |
+
+## Segurança
+
+Comandos destrutivos são bloqueados automaticamente em todos os sistemas operacionais:
+- **Windows:** `format c:`, `del /f /s /q c:\`, etc.
+- **macOS/Linux:** `rm -rf /`, `sudo rm -rf /`, `mkfs`, etc.
+ocalhost:11434` | Endereço do Ollama |
+
+## Segurança
+
+Comandos destrutivos (`format c:`, `del /f /s /q c:\`, etc.) são bloqueados automaticamente.
+ocalhost:11434` | Endereço do Ollama |
 
 ## Segurança
 

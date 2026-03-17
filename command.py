@@ -8,10 +8,13 @@
 #   3. python command.py
 
 import os
+import platform
 import re
 import subprocess
 import requests
 from typing import List, Dict
+
+_IS_WINDOWS = platform.system() == "Windows"
 
 from rich.console import Console
 from rich.markup import escape
@@ -75,7 +78,7 @@ _load_env_file()
 
 # ── Configuracoes ─────────────────────────────────────────────────────────────
 OPENAI_API_KEY  = os.getenv("OPENAI_API_KEY", "")
-USUARIO         = os.getenv("USUARIO", os.getenv("USERNAME", "user"))
+USUARIO         = os.getenv("USUARIO", os.getenv("USERNAME") or os.getenv("USER", "user"))
 OLLAMA_URL      = os.getenv("OLLAMA_URL", "http://localhost:11434")
 PROVIDER_ENV    = os.getenv("PROVIDER", "")
 MODELO_ENV      = os.getenv("MODELO_ATUAL", "")
@@ -89,11 +92,18 @@ MODELOS_PREFERIDOS = [
 ]
 
 # Comandos que destroem dados sem volta
-BLOQUEADOS = [
+_BLOQUEADOS_WINDOWS = [
     "format c:", "format d:", "format e:",
     "del /f /s /q c:\\", "rd /s /q c:\\",
     "rmdir /s /q c:\\",
 ]
+_BLOQUEADOS_UNIX = [
+    "rm -rf /", "rm -rf /*",
+    "sudo rm -rf /", "sudo rm -rf /*",
+    "mkfs", "dd if=/dev/zero of=/dev/sd",
+    "> /dev/sda", "chmod -r /", "chmod 000 /",
+]
+BLOQUEADOS = _BLOQUEADOS_WINDOWS if _IS_WINDOWS else _BLOQUEADOS_UNIX
 
 BANNER = """\
 [bold cyan] ██████╗ ██████╗ ███╗   ███╗███╗   ███╗ █████╗ ███╗   ██╗██████╗ [/]
@@ -104,7 +114,7 @@ BANNER = """\
 [cyan] ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ [/]\
 """
 
-SYSTEM_PROMPT = """You are Command, an AI-powered terminal for Windows CMD.
+_SYSTEM_PROMPT_WINDOWS = """You are Command, an AI-powered terminal for Windows CMD.
 Execute actions by wrapping commands in curly braces: {command}
 Use multiple {command} blocks for multi-step tasks. Keep responses short.
 
@@ -134,11 +144,39 @@ Multi-step example — "create folder dog with empty file boing.txt inside":
   {copy nul dog\\boing.txt}
 """
 
+_SYSTEM_PROMPT_UNIX = """You are Command, an AI-powered terminal for bash/zsh.
+Execute actions by wrapping commands in curly braces: {command}
+Use multiple {command} blocks for multi-step tasks. Keep responses short.
+
+Bash syntax reference (always use these — never use Windows CMD syntax):
+  List files          → {ls}
+  Change directory    → {cd foldername}
+  Create folder       → {mkdir foldername}
+  Delete folder       → {rm -rf foldername}
+  Create empty file   → {touch filename.txt}
+  Write to file       → {echo "content" > filename.txt}
+  Read file           → {cat filename.txt}
+  Delete file         → {rm filename.txt}
+  Copy file           → {cp source.txt dest.txt}
+  Move/Rename file    → {mv source.txt dest.txt}
+  Open VS Code        → {code .}
+  Run Python          → {python3 script.py}
+  Install package     → {pip3 install package}
+  Git status          → {git status}
+  For paths with spaces use quotes: {cd "My Folder"}
+
+Multi-step example — "create folder dog with empty file boing.txt inside":
+  {mkdir dog}
+  {touch dog/boing.txt}
+"""
+
+SYSTEM_PROMPT = _SYSTEM_PROMPT_WINDOWS if _IS_WINDOWS else _SYSTEM_PROMPT_UNIX
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def limpar_tela():
-    os.system("cls")
+    os.system("cls" if _IS_WINDOWS else "clear")
 
 
 def prompt_dir(cwd: str) -> str:
