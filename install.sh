@@ -4,8 +4,9 @@
 
 set -euo pipefail
 
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
+# Locale — ignora erro em ambientes sem en_US.UTF-8 (ex: WSL básico)
+export LANG=en_US.UTF-8 2>/dev/null || true
+export LC_ALL=en_US.UTF-8 2>/dev/null || true
 
 REPO="https://raw.githubusercontent.com/arismarioneves/Command/main"
 INSTALL_DIR="$HOME/.command"
@@ -42,7 +43,7 @@ echo ""
 
 while true; do
     printf "  Opcao [1/2]: "
-    read -r modo
+    read -r modo </dev/tty
     [[ "$modo" == "1" || "$modo" == "2" ]] && break
     printf "${RED}  Opcao invalida.${NC}\n"
 done
@@ -54,7 +55,7 @@ if [[ "$modo" == "2" ]]; then
     echo ""
     while true; do
         printf "  Cole sua OpenAI API key (sk-...): "
-        read -r API_KEY
+        read -r API_KEY </dev/tty
         [[ "$API_KEY" == sk-* ]] && break
         printf "${RED}  Chave invalida. Deve comecar com 'sk-'.${NC}\n"
     done
