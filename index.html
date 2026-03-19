@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>command — AI terminal</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0c0c0c;
+            --surface: #111;
+            --surface2: #161616;
+            --border: #222;
+            --border2: #2a2a2a;
+            --text: #d4d4d4;
+            --muted: #555;
+            --dim: #3a3a3a;
+            --green: #3fb950;
+            --teal: #39d5b3;
+            --purple: #a78bfa;
+            --blue: #58a6ff;
+            --yellow: #e3b341;
+            --red: #f85149;
+            --white: #f0f0f0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ─── NAV ──────────────────────────────────────────────────── */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 48px;
+            height: 56px;
+            background: rgba(12, 12, 12, 0.9);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--white);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .logo .logo-sym {
+            color: var(--teal);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 28px;
+        }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+            transition: color 0.2s;
+        }
+
+        nav a:hover {
+            color: var(--text);
+        }
+
+        .nav-gh {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid var(--border2);
+            padding: 6px 14px;
+            border-radius: 6px;
+            color: var(--text) !important;
+            font-size: 0.78rem !important;
+            transition: border-color 0.2s, background 0.2s !important;
+        }
+
+        .nav-gh:hover {
+            border-color: var(--dim);
+            background: var(--surface2) !important;
+        }
+
+        /* ─── HERO ──────────────────────────────────────────────────── */
+        .hero {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 48px;
+            padding: 80px 64px 60px;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 900px) {
+            .hero {
+                grid-template-columns: 1fr;
+                padding: 100px 24px 60px;
+                text-align: center;
+            }
+
+            .hero-terminal {
+                order: -1;
+            }
+        }
+
+        .hero-content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .hero-content {
+                align-items: center;
+            }
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.72rem;
+            color: var(--teal);
+            border: 1px solid rgba(57, 213, 179, 0.2);
+            background: rgba(57, 213, 179, 0.05);
+            padding: 4px 12px;
+            border-radius: 4px;
+            letter-spacing: 1px;
+        }
+
+        .tag-dot {
+            width: 5px;
+            height: 5px;
+            background: var(--teal);
+            border-radius: 50%;
+            animation: blink-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes blink-dot {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.2;
+            }
+        }
+
+        h1 {
+            font-size: clamp(2.2rem, 4.5vw, 3.6rem);
+            font-weight: 800;
+            line-height: 1.08;
+            letter-spacing: -1.5px;
+            color: var(--white);
+        }
+
+        h1 .hl {
+            color: var(--purple);
+        }
+
+        .hero-desc {
+            font-size: 1rem;
+            color: var(--muted);
+            max-width: 420px;
+            line-height: 1.7;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 22px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            opacity: 0.9;
+        }
+
+        .btn-primary {
+            background: var(--purple);
+            color: #fff;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border2);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--dim);
+        }
+
+        /* ─── TERMINAL ──────────────────────────────────────────────── */
+        .hero-terminal {
+            position: relative;
+        }
+
+        .term-glow {
+            position: absolute;
+            inset: -40px;
+            background: radial-gradient(ellipse at center, rgba(167, 139, 250, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .term-window {
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7);
+            position: relative;
+        }
+
+        .term-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 14px;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            user-select: none;
+        }
+
+        .tdot {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+        }
+
+        .tdot-r {
+            background: #ff5f57;
+        }
+
+        .tdot-y {
+            background: #febc2e;
+        }
+
+        .tdot-g {
+            background: #27c840;
+        }
+
+        .term-title {
+            margin-left: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.72rem;
+            color: var(--muted);
+            letter-spacing: 0.5px;
+        }
+
+        .term-body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.78rem;
+            line-height: 1.75;
+            padding: 18px 20px;
+            height: 360px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* prompt row */
+        .t-row {
+            display: flex;
+            align-items: baseline;
+            white-space: pre;
+        }
+
+        .t-ps1-path {
+            color: var(--blue);
+        }
+
+        .t-ps1-sym {
+            color: var(--purple);
+            margin: 0 4px;
+        }
+
+        .t-input {
+            color: var(--white);
+        }
+
+        .t-out {
+            color: var(--muted);
+        }
+
+        .t-cmd {
+            color: var(--purple);
+        }
+
+        .t-ok {
+            color: var(--green);
+        }
+
+        .t-warn {
+            color: var(--yellow);
+        }
+
+        .t-info {
+            color: var(--teal);
+        }
+
+        .t-cursor {
+            display: inline-block;
+            width: 7px;
+            height: 0.85em;
+            background: var(--purple);
+            vertical-align: middle;
+            animation: cur 1s step-end infinite;
+        }
+
+        @keyframes cur {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0
+            }
+        }
+
+        .t-line {
+            opacity: 0;
+        }
+
+        /* ─── SECTION COMMON ────────────────────────────────────────── */
+        .section {
+            padding: 88px 64px;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 768px) {
+            .section {
+                padding: 64px 24px;
+            }
+        }
+
+        .sec-kicker {
+            font-family: 'Courier New', monospace;
+            font-size: 0.72rem;
+            color: var(--teal);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .sec-title {
+            font-size: clamp(1.6rem, 3vw, 2.4rem);
+            font-weight: 800;
+            color: var(--white);
+            letter-spacing: -0.8px;
+            margin-bottom: 12px;
+        }
+
+        .sec-sub {
+            color: var(--muted);
+            max-width: 480px;
+            font-size: 0.9rem;
+        }
+
+        /* ─── DIVIDER ────────────────────────────────────────────────── */
+        .rule {
+            height: 1px;
+            background: var(--border);
+            margin: 0 64px;
+        }
+
+        @media (max-width: 768px) {
+            .rule {
+                margin: 0 24px;
+            }
+        }
+
+        /* ─── FEATURES ──────────────────────────────────────────────── */
+        #features {
+            background: var(--bg);
+        }
+
+        .feat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 56px;
+        }
+
+        @media (max-width: 900px) {
+            .feat-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .feat-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .feat {
+            background: var(--surface);
+            padding: 28px 28px 32px;
+            transition: background 0.25s;
+        }
+
+        .feat:hover {
+            background: var(--surface2);
+        }
+
+        .feat-icon {
+            font-family: 'Courier New', monospace;
+            font-size: 0.72rem;
+            color: var(--teal);
+            margin-bottom: 16px;
+            letter-spacing: 1px;
+        }
+
+        .feat h3 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--white);
+            margin-bottom: 8px;
+        }
+
+        .feat p {
+            font-size: 0.82rem;
+            color: var(--muted);
+            line-height: 1.65;
+        }
+
+        .inline-code {
+            font-family: 'Courier New', monospace;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border2);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        /* ─── INSTALL ───────────────────────────────────────────────── */
+        #install {
+            background: #0e0e0e;
+        }
+
+        .install-wrap {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 48px;
+        }
+
+        @media (max-width: 640px) {
+            .install-wrap {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .install-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .install-card-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .install-card-head .ic-os {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--white);
+        }
+
+        .install-card-head .ic-badge {
+            font-family: 'Courier New', monospace;
+            font-size: 0.67rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border2);
+            color: var(--muted);
+            padding: 2px 8px;
+            border-radius: 3px;
+            letter-spacing: 1px;
+        }
+
+        .install-card-body {
+            padding: 20px;
+        }
+
+        .install-card-body p {
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-bottom: 14px;
+        }
+
+        .code-block {
+            position: relative;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 14px 48px 14px 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.76rem;
+            color: var(--teal);
+            word-break: break-all;
+            line-height: 1.5;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            background: var(--border);
+            border: none;
+            color: var(--muted);
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--purple);
+            color: #fff;
+        }
+
+        .install-footer {
+            margin-top: 10px;
+            font-size: 0.75rem;
+            color: var(--muted);
+            font-family: 'Courier New', monospace;
+        }
+
+        .install-footer span {
+            color: var(--teal);
+        }
+
+        .install-note {
+            text-align: center;
+            margin-top: 36px;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .install-note a {
+            color: var(--purple);
+            text-decoration: none;
+        }
+
+        .install-note a:hover {
+            text-decoration: underline;
+        }
+
+        /* ─── MODELS ────────────────────────────────────────────────── */
+        #models {
+            background: var(--bg);
+        }
+
+        .models-tabs {
+            display: flex;
+            gap: 2px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 3px;
+            width: fit-content;
+            margin: 40px 0 24px;
+        }
+
+        .tab-btn {
+            font-size: 0.78rem;
+            font-family: inherit;
+            padding: 6px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--muted);
+            transition: background 0.2s, color 0.2s;
+            letter-spacing: 0.3px;
+        }
+
+        .tab-btn.active {
+            background: var(--surface);
+            color: var(--white);
+        }
+
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .model-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 18px;
+            transition: border-color 0.2s;
+        }
+
+        .model-card:hover {
+            border-color: var(--dim);
+        }
+
+        .model-name {
+            font-family: 'Courier New', monospace;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--teal);
+            margin-bottom: 4px;
+        }
+
+        .model-desc {
+            font-size: 0.76rem;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .model-badge {
+            font-family: 'Courier New', monospace;
+            font-size: 0.67rem;
+            padding: 2px 8px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        .badge-local {
+            background: rgba(57, 213, 179, 0.08);
+            border: 1px solid rgba(57, 213, 179, 0.2);
+            color: var(--teal);
+        }
+
+        .badge-cloud {
+            background: rgba(167, 139, 250, 0.08);
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            color: var(--purple);
+        }
+
+        /* ─── FOOTER ────────────────────────────────────────────────── */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 32px 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        @media (max-width: 768px) {
+            footer {
+                padding: 24px;
+            }
+        }
+
+        .foot-logo {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        .foot-logo span {
+            color: var(--teal);
+        }
+
+        footer p,
+        footer a {
+            font-size: 0.78rem;
+            color: var(--muted);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--text);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <a class="logo" href="#">
+            <span class="logo-sym">❯</span> command
+        </a>
+        <ul>
+            <li><a href="#features">features</a></li>
+            <li><a href="#install">install</a></li>
+            <li><a href="#models">models</a></li>
+            <li>
+                <a href="https://ae8.com.br/" target="_blank" class="nav-gh">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        viewBox="0 0 16 16">
+                        <path
+                            d="M0 1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1zm0 9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1z" />
+                    </svg>
+                    AE8
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- HERO -->
+    <div class="hero">
+        <!-- LEFT: copy -->
+        <div class="hero-content">
+            <div class="tag"><span class="tag-dot"></span>open source</div>
+
+            <h1>Type it.<br><span class="hl">Run it.</span><br>That simple.</h1>
+
+            <p class="hero-desc">
+                Command is an AI-powered terminal. Write what you want in plain language — it translates to shell commands and executes them. Local or cloud, your pick.
+            </p>
+
+            <div class="hero-actions">
+                <a href="#install" class="btn btn-primary">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Install
+                </a>
+                <a href="https://github.com/arismarioneves/command" target="_blank" class="btn btn-outline">
+                    View source
+                </a>
+            </div>
+        </div>
+
+        <!-- RIGHT: terminal -->
+        <div class="hero-terminal">
+            <div class="term-glow"></div>
+            <div class="term-window">
+                <div class="term-bar">
+                    <div class="tdot tdot-r"></div>
+                    <div class="tdot tdot-y"></div>
+                    <div class="tdot tdot-g"></div>
+                    <div class="term-title">command — bash</div>
+                </div>
+                <div class="term-body" id="termBody"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="rule"></div>
+
+    <!-- FEATURES -->
+    <section class="section" id="features">
+        <div class="sec-kicker">// why command</div>
+        <h2 class="sec-title">Less memorizing.<br>More doing.</h2>
+        <p class="sec-sub">No scripting, no man pages, no stack overflow. Just describe what you need.</p>
+
+        <div class="feat-grid">
+            <div class="feat">
+                <div class="feat-icon">$ natural language</div>
+                <h3>Plain English → Shell</h3>
+                <p>Describe any task. Command calls the AI, extracts commands from the response, and runs them — one by one.</p>
+            </div>
+            <div class="feat">
+                <div class="feat-icon">$ offline mode</div>
+                <h3>100% Local with Ollama</h3>
+                <p>Run entirely offline. No API key. No data leaving your machine. Pull a model once and use it forever, free.</p>
+            </div>
+            <div class="feat">
+                <div class="feat-icon">$ cloud mode</div>
+                <h3>OpenAI Support</h3>
+                <p>Prefer the cloud? Set your <span class="inline-code">OPENAI_API_KEY</span> and pick from GPT-4o-mini to GPT-5-nano.</p>
+            </div>
+            <div class="feat">
+                <div class="feat-icon">$ bypass</div>
+                <h3>Direct Execution</h3>
+                <p>Prefix with <span class="inline-code">!</span> to skip the AI and run any shell command raw. Full control, zero friction.</p>
+            </div>
+            <div class="feat">
+                <div class="feat-icon">$ model switch</div>
+                <h3>Swap Models Live</h3>
+                <p>Type <span class="inline-code">:</span> to pick interactively, or <span class="inline-code">:modelname</span> to switch instantly — no restart needed.</p>
+            </div>
+            <div class="feat">
+                <div class="feat-icon">$ safety guard</div>
+                <h3>Destructive Block</h3>
+                <p>Built-in blocklist stops catastrophic commands like <span class="inline-code" style="color:var(--red)">rm -rf/</span> from ever being executed.</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="rule"></div>
+
+    <!-- INSTALL -->
+    <section class="section" id="install">
+        <div class="sec-kicker">// get started</div>
+        <h2 class="sec-title">One line to install.</h2>
+        <p class="sec-sub">The installer sets up dependencies, configuration, and PATH — then asks whether you want local AI or cloud.</p>
+
+        <div class="install-wrap">
+            <!-- Windows -->
+            <div class="install-card">
+                <div class="install-card-head">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:var(--blue)">
+                        <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801" />
+                    </svg>
+                    <span class="ic-os">Windows</span>
+                    <span class="ic-badge">powershell</span>
+                </div>
+                <div class="install-card-body">
+                    <p>Run in PowerShell. Admin rights recommended.</p>
+                    <div class="code-block">
+                        powershell -ExecutionPolicy Bypass -c "irm https://aiu4.com/command/install.ps1 | iex"
+                        <button class="copy-btn" title="Copy" onclick="copyCode(this)">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="install-footer">run with: <span>command</span></div>
+                </div>
+            </div>
+
+            <!-- macOS/Linux -->
+            <div class="install-card">
+                <div class="install-card-head">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="color:var(--green)">
+                        <rect x="2" y="3" width="20" height="14" rx="2" />
+                        <path d="M8 21h8M12 17v4" />
+                    </svg>
+                    <span class="ic-os">macOS / Linux</span>
+                    <span class="ic-badge">bash</span>
+                </div>
+                <div class="install-card-body">
+                    <p>Works on macOS, Ubuntu, Debian, Arch, and most distros.</p>
+                    <div class="code-block">
+                        curl -fsSL https://aiu4.com/command/install.sh | bash
+                        <button class="copy-btn" title="Copy" onclick="copyCode(this)">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="install-footer">run with: <span>cmd</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="install-note">
+            Prefer manual setup?
+            <a href="https://github.com/arismarioneves/command#readme" target="_blank">Read the README →</a>
+        </div>
+    </section>
+
+    <div class="rule"></div>
+
+    <!-- MODELS -->
+    <section class="section" id="models">
+        <div class="sec-kicker">// ai models</div>
+        <h2 class="sec-title">Local or cloud.</h2>
+        <p class="sec-sub">Switch models at any time without restarting. The installer walks you through the first setup.</p>
+
+        <div class="models-tabs">
+            <button class="tab-btn active" onclick="showTab('local', this)">Ollama — local</button>
+            <button class="tab-btn" onclick="showTab('cloud', this)">OpenAI — cloud</button>
+        </div>
+
+        <div class="models-grid" id="tab-local">
+            <div class="model-card">
+                <div class="model-name">qwen2.5:3b</div>
+                <div class="model-desc">Default. Best for code and commands.</div>
+                <span class="model-badge badge-local">~2 GB</span>
+            </div>
+            <div class="model-card">
+                <div class="model-name">gemma3:1b</div>
+                <div class="model-desc">Ideal for low-RAM machines.</div>
+                <span class="model-badge badge-local">~800 MB</span>
+            </div>
+            <div class="model-card">
+                <div class="model-name">gemma3:4b</div>
+                <div class="model-desc">Better for reasoning tasks.</div>
+                <span class="model-badge badge-local">~3 GB</span>
+            </div>
+            <div class="model-card">
+                <div class="model-name">llama3.2</div>
+                <div class="model-desc">General purpose use.</div>
+                <span class="model-badge badge-local">~2 GB</span>
+            </div>
+            <div class="model-card">
+                <div class="model-name">mistral</div>
+                <div class="model-desc">Advanced general tasks.</div>
+                <span class="model-badge badge-local">~4 GB</span>
+            </div>
+        </div>
+
+        <div class="models-grid" id="tab-cloud" style="display:none">
+            <div class="model-card">
+                <div class="model-name">gpt-4o-mini</div>
+                <div class="model-desc">Fast and economical.</div>
+                <span class="model-badge badge-cloud">cloud</span>
+            </div>
+            <div class="model-card">
+                <div class="model-name">gpt-4.1-mini</div>
+                <div class="model-desc">Newer generation, low cost.</div>
+                <span class="model-badge badge-cloud">cloud</span>
+            </div>
+            <div class="model-card">
+                <div class="model-name">gpt-4.1-nano</div>
+                <div class="model-desc">Ultra-light and cheap.</div>
+                <span class="model-badge badge-cloud">cloud</span>
+            </div>
+            <div class="model-card">
+                <div class="model-name">gpt-5-nano</div>
+                <div class="model-desc">Lightest GPT-5. Default cloud.</div>
+                <span class="model-badge badge-cloud">cloud</span>
+            </div>
+            <div class="model-card">
+                <div class="model-name">gpt-5-mini</div>
+                <div class="model-desc">Advanced capability, low cost.</div>
+                <span class="model-badge badge-cloud">cloud</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="foot-logo"><span>❯</span> command</div>
+        <p>MIT &middot; <a href="https://ae8.com.br/" target="_blank"><strong>AE8</strong></a></p>
+        <a href="https://github.com/arismarioneves/command" target="_blank"
+            style="display:flex;align-items:center;gap:6px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path
+                    d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8" />
+            </svg>
+        </a>
+    </footer>
+
+    <script>
+        /* ── TERMINAL ANIMATION ─────────────────────────────────────────────────── */
+        const LINES = [
+            { t: 'ps1', cmd: 'create a folder called api with main.py inside' },
+            { t: 'out', cls: 't-info', tx: '  thinking...' },
+            { t: 'out', cls: 't-cmd', tx: '  {mkdir api}' },
+            { t: 'out', cls: 't-ok', tx: '  ✓ mkdir api' },
+            { t: 'out', cls: 't-cmd', tx: '  {touch api/main.py}' },
+            { t: 'out', cls: 't-ok', tx: '  ✓ touch api/main.py' },
+            { t: 'blank' },
+            { t: 'ps1', cmd: 'list all files in api/' },
+            { t: 'out', cls: 't-cmd', tx: '  {find api/ -type f}' },
+            { t: 'out', cls: 't-out', tx: '  api/main.py' },
+            { t: 'blank' },
+            { t: 'ps1', cmd: '!git init' },
+            { t: 'out', cls: 't-ok', tx: '  Initialized empty Git repository in api/.git/' },
+            { t: 'blank' },
+            { t: 'ps1', cmd: ':gemma3:4b' },
+            { t: 'out', cls: 't-warn', tx: '  ◆ model → gemma3:4b' },
+            { t: 'blank' },
+            { t: 'cursor' },
+        ];
+
+        const PATH = '~/projects';
+        const body = document.getElementById('termBody');
+        let idx = 0;
+
+        function mkRow(html) {
+            const d = document.createElement('div');
+            d.className = 't-row t-line';
+            d.innerHTML = html;
+            body.appendChild(d);
+            requestAnimationFrame(() => {
+                d.style.transition = 'opacity 0.2s';
+                d.style.opacity = '1';
+            });
+        }
+
+        function esc(s) {
+            return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function promptHtml(cmd) {
+            return `<span class="t-ps1-path">${PATH}</span><span class="t-ps1-sym"> ❯ </span><span class="t-input">${esc(cmd)}</span>`;
+        }
+
+        function step() {
+            if (idx >= LINES.length) {
+                setTimeout(() => { body.innerHTML = ''; idx = 0; setTimeout(step, 500); }, 3500);
+                return;
+            }
+            const l = LINES[idx++];
+
+            if (l.t === 'blank') {
+                mkRow('&nbsp;');
+            } else if (l.t === 'ps1') {
+                mkRow(promptHtml(l.cmd));
+            } else if (l.t === 'cursor') {
+                mkRow(`<span class="t-ps1-path">${PATH}</span><span class="t-ps1-sym"> ❯ </span><span class="t-cursor"></span>`);
+            } else {
+                mkRow(`<span class="${l.cls}">${esc(l.tx)}</span>`);
+            }
+
+            // scroll
+            body.scrollTop = body.scrollHeight;
+
+            const delays = { ps1: 750, blank: 30, cursor: 0 };
+            let d = delays[l.t] ?? 90;
+            if (l.cls === 't-info') d = 600;
+            if (l.cls === 't-cmd') d = 280;
+            if (l.cls === 't-ok') d = 160;
+            if (l.cls === 't-warn') d = 200;
+
+            setTimeout(step, d);
+        }
+
+        setTimeout(step, 700);
+
+        /* ── COPY ───────────────────────────────────────────────────────────────── */
+        function copyCode(btn) {
+            const txt = btn.parentElement.childNodes[0].textContent.trim();
+            navigator.clipboard.writeText(txt).then(() => {
+                btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+                setTimeout(() => {
+                    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+                }, 2000);
+            });
+        }
+
+        /* ── TABS ───────────────────────────────────────────────────────────────── */
+        function showTab(id, btn) {
+            document.getElementById('tab-local').style.display = 'none';
+            document.getElementById('tab-cloud').style.display = 'none';
+            document.getElementById('tab-' + id).style.display = 'grid';
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+    </script>
+</body>
+
+</html>
