@@ -8,13 +8,13 @@ Super terminal com IA para Windows, macOS e Linux — powered by **Ollama** (loc
 **Windows**
 
 ```powershell
-powershell -ExecutionPolicy Bypass -c "irm https://aiu4.com/command/install.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/arismarioneves/Command/main/install.ps1 | iex"
 ```
 
 **macOS / Linux**
 
 ```bash
-curl -fsSL https://aiu4.com/command/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/arismarioneves/Command/main/install.sh | bash
 ```
 
 O instalador pergunta o modo desejado:
@@ -23,7 +23,7 @@ O instalador pergunta o modo desejado:
   Escolha o modo de funcionamento:
 
     [1] Local   — Ollama + qwen2.5:3b  (gratuito, roda na sua maquina)
-    [2] Online  — OpenAI API            (requer chave, sem download de LLM)
+    [2] Online  — OpenAI API           (requer chave, sem download de LLM)
 ```
 
 - **Modo Local:** instala Ollama e baixa o modelo `qwen2.5:3b` (~2 GB). Sem custos, funciona offline.
@@ -38,7 +38,7 @@ O provider fica salvo no `.env`. Para trocar de provider (Ollama ↔ OpenAI), ba
 Em ambos os modos é necessário um arquivo `.env` na mesma pasta do `command.py`. Copie o exemplo e ajuste:
 
 ```bash
-cp .env.example .env   # macOS/Linux
+cp .env.example .env    # macOS/Linux
 copy .env.example .env  # Windows
 ```
 

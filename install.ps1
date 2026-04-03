@@ -1,5 +1,5 @@
 # Command - Script de instalacao para Windows
-# Uso: powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/arismarioneves/command/main/install.ps1 | iex"
+# Uso: powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/arismarioneves/Command/main/install.ps1 | iex"
 
 $ErrorActionPreference = "Stop"
 
@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
-$REPO        = "https://raw.githubusercontent.com/arismarioneves/command/main"
+$REPO        = "https://raw.githubusercontent.com/arismarioneves/Command/main"
 $INSTALL_DIR = "$env:USERPROFILE\.command"
 
 # ── Banner ────────────────────────────────────────────────────────────────────
